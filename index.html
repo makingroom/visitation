@@ -495,6 +495,130 @@
   @media (max-width: 420px){
     :root{ --center-w: 168px; --rail-w: 36px; --tile-h: 52px; }
   }
+
+  /* ---------- Responsive layout refinements ---------- */
+  :root{
+    --tile-h: clamp(48px, 6.4vh, 58px);
+    --rail-w: clamp(54px, 7vw, 72px);
+    --center-w: clamp(300px, 42vw, 440px);
+  }
+
+  #app{
+    align-items:flex-start;
+    padding: clamp(22px, 4vh, 44px) 18px 48px;
+  }
+
+  .screen{ max-width: 1080px; }
+
+  #header{
+    padding: 0 16px clamp(18px, 3vh, 28px);
+  }
+  #header h1{
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    margin: 7px 0 4px;
+    line-height:1.05;
+    text-shadow:none;
+  }
+  #header .subtitle{
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    margin:0;
+    font-weight:500;
+  }
+
+  #board-wrap{ width:100%; }
+  .progress-line{ margin-bottom:2px; font-size:.84rem; }
+  .board-instructions{ margin-bottom:12px; font-size:.88rem; }
+
+  #board{
+    width:max-content;
+    max-width:100%;
+    margin:0 auto;
+    padding: 18px 12px 20px;
+    border-radius:14px;
+    overflow:visible;
+  }
+  .rail{
+    width:var(--rail-w);
+    flex-basis:var(--rail-w);
+    background-size:100% var(--tile-h);
+  }
+  #rail-left{ margin-right:10px; }
+  #rail-right{ margin-left:10px; }
+  #center-wrap{
+    width:var(--center-w);
+    flex-basis:var(--center-w);
+    min-width:0;
+  }
+  .center-caption{
+    bottom:-24px;
+    font-size:.78rem;
+    font-style:normal;
+    opacity:.58;
+  }
+
+  #modal-backdrop{ padding:16px; }
+  #modal{
+    max-width:520px;
+    padding:34px 30px 28px;
+    border-radius:12px;
+  }
+  #modal .modal-verse{ font-size:clamp(1.35rem, 3vw, 1.65rem); }
+  #modal .modal-interpretation,
+  #modal .modal-prompt{ font-size:clamp(1rem, 2.2vw, 1.12rem); }
+
+  @media (max-width: 760px){
+    :root{
+      --tile-h: 48px;
+      --rail-w: 44px;
+      --center-w: min(68vw, 300px);
+    }
+    #app{ padding:20px 10px 36px; }
+    #header{ padding-bottom:16px; }
+    .eyebrow{ font-size:.72rem; }
+    #header h1{ font-size:2rem; }
+    #header .subtitle{ font-size:.98rem; }
+    .board-instructions{
+      max-width:34ch;
+      margin:0 auto 10px;
+      line-height:1.35;
+    }
+    #board{
+      width:100%;
+      padding:14px 6px 18px;
+      justify-content:center;
+      border-radius:10px;
+    }
+    #rail-left{ margin-right:6px; }
+    #rail-right{ margin-left:6px; }
+    .tile-index{ font-size:.62rem; padding:2px 5px; }
+    .center-caption{ display:none; }
+    #modal-backdrop{
+      align-items:flex-end;
+      padding:10px;
+    }
+    #modal{
+      max-width:none;
+      max-height:88dvh;
+      padding:30px 22px max(24px, env(safe-area-inset-bottom));
+      border-radius:16px 16px 10px 10px;
+    }
+    #modal .modal-close{ top:12px; right:14px; }
+    #final{ padding:28px 16px 4px; }
+  }
+
+  @media (max-width: 390px){
+    :root{
+      --tile-h: 44px;
+      --rail-w: 38px;
+      --center-w: calc(100vw - 104px);
+    }
+    #app{ padding-left:6px; padding-right:6px; }
+    #board{ padding-left:4px; padding-right:4px; }
+    #rail-left{ margin-right:5px; }
+    #rail-right{ margin-left:5px; }
+    .tile-index{ font-size:.58rem; }
+  }
+
 </style>
 </head>
 <body>
@@ -748,14 +872,34 @@
   // -----------------------------------------------------------------
   var tileEls = {}; // n -> element
 
+  function getTileHeight(){
+    var value = getComputedStyle(document.documentElement).getPropertyValue('--tile-h').trim();
+    if(value.endsWith('px')) return parseFloat(value);
+    // CSS clamp()/vh values are resolved by measuring a temporary element.
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;height:var(--tile-h);';
+    document.body.appendChild(probe);
+    var h = probe.getBoundingClientRect().height || 54;
+    probe.remove();
+    return h;
+  }
+
+  function layoutRails(){
+    var h = getTileHeight();
+    [railLeft, railRight].forEach(function(container){
+      container.style.height = (13 * h) + 'px';
+      Array.prototype.forEach.call(container.querySelectorAll('.tile'), function(btn, i){
+        btn.style.top = (i * h) + 'px';
+        btn.style.height = h + 'px';
+      });
+    });
+  }
+
   function buildRail(container, count, tileNumbers){
-    container.style.height = (count * 88) + 'px';
     for(var i=0;i<count;i++){
       var n = tileNumbers[i];
       var btn = document.createElement('button');
       btn.className = 'tile';
-      btn.style.top = (i * 88) + 'px';
-      btn.style.height = '88px';
       btn.setAttribute('data-n', n);
       btn.setAttribute('aria-label', 'Tile ' + n + ' of 26');
 
@@ -785,6 +929,12 @@
 
     buildRail(railLeft, LEFT_COUNT, leftNums);
     buildRail(railRight, RIGHT_COUNT, rightNums);
+    layoutRails();
+    var resizeTimer;
+    window.addEventListener('resize', function(){
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(layoutRails, 80);
+    });
   })();
 
   // -----------------------------------------------------------------
