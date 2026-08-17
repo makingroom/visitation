@@ -210,10 +210,11 @@
 
   .rail{
     position: relative;
+    z-index: 2;
     width: var(--rail-w);
     flex: 0 0 var(--rail-w);
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 0 0 1px var(--line);
     background-repeat: repeat-y;
     background-position: top center;
@@ -257,13 +258,19 @@
   .tile.locked{ cursor: not-allowed; }
   .tile.locked .tile-hit{ opacity: 0.55; }
 
-  .tile.active{ cursor:pointer; }
+  .tile.active{ cursor:pointer; z-index: 30; }
   .tile.active .tile-hit{
     position:relative;
     filter: saturate(1.05) brightness(1.12) contrast(1.05);
-    box-shadow: 0 0 0 3px var(--violet), 0 0 14px 3px rgba(146,136,237,0.75);
-    animation: tilePulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 0 3px var(--violet), 0 0 16px 4px rgba(146,136,237,0.8);
+    animation: tilePulse 1.7s ease-in-out infinite;
   }
+  /* Magnify the active tile so it's unmistakable which pane to tap.
+     Anchored to the OUTER edge of its own rail (transform-origin), so all
+     of the extra size grows inward toward the center image -- it never
+     extends past the rail's own outer boundary. */
+  #rail-left .tile.active .tile-hit{ transform-origin: 0% 50%; }
+  #rail-right .tile.active .tile-hit{ transform-origin: 100% 50%; }
   .tile.active .tile-hit::after{
     content:"";
     position:absolute;
@@ -272,11 +279,11 @@
     border: 2px solid var(--violet);
     opacity: 0.9;
     pointer-events:none;
-    animation: tileRipple 1.8s ease-out infinite;
+    animation: tileRipple 1.7s ease-out infinite;
   }
   @keyframes tilePulse{
-    0%, 100%{ box-shadow: 0 0 0 3px var(--violet), 0 0 14px 3px rgba(146,136,237,0.75); }
-    50%{ box-shadow: 0 0 0 3px var(--violet), 0 0 22px 7px rgba(146,136,237,0.95); }
+    0%, 100%{ transform: scale(1.22); box-shadow: 0 0 0 3px var(--violet), 0 0 16px 4px rgba(146,136,237,0.8); }
+    50%{ transform: scale(1.32); box-shadow: 0 0 0 3px var(--violet), 0 0 26px 9px rgba(146,136,237,1); }
   }
   @keyframes tileRipple{
     0%{ transform: scale(1); opacity: 0.85; }
@@ -301,7 +308,6 @@
     100%{ transform: scale(1.9); opacity: 0; }
   }
   .tile.active .tile-hit:hover, .tile.active .tile-hit:focus-visible{
-    transform: scale(1.03);
     filter: saturate(1.1) brightness(1.15) contrast(1.05);
   }
   .tile:focus-visible{ outline:none; }
@@ -336,6 +342,7 @@
   /* ---------- Center ---------- */
   #center-wrap{
     position:relative;
+    z-index: 1;
     width: var(--center-w);
     flex: 0 0 var(--center-w);
     display:flex;
